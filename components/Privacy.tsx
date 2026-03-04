@@ -59,7 +59,7 @@ const Privacy: React.FC = () => {
                 
                 <h4 className="text-white font-bold text-lg mt-6 mb-2 flex items-center gap-2"><Users size={18} className="text-dats-blue"/> A. Personal Information</h4>
                 <ul className="list-disc pl-5 space-y-2 text-sm font-mono">
-                    <li><strong>Account Information:</strong> When you register, we collect your name, email address, password hash, and authentication tokens (e.g., GitHub/Google OAuth).</li>
+                    <li><strong>Account Information:</strong> When you register, we collect your name, email address, password hash, and authentication tokens (e.g., GitHub OAuth).</li>
                     <li><strong>Billing Information:</strong> We utilize third-party payment processors (Stripe). We do not store full credit card numbers, but we retain billing addresses and transaction history.</li>
                     <li><strong>Communications:</strong> Records of your interactions with our support team, including emails and chat logs.</li>
                 </ul>

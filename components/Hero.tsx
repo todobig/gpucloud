@@ -308,7 +308,7 @@ model = Inference.load(<span className="text-dats-blue">"llama-2-70b"</span>)<br
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;max_tokens=<span className="text-orange-400">1024</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;temperature=<span className="text-orange-400">0.7</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-purple-400">return</span> {"result": output}
+&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-purple-400">return</span> {'{'}"result": output{'}'}
                         </pre>
                     </div>
                 </div>

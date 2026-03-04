@@ -24,7 +24,7 @@ const Models: React.FC = () => {
                         { name: "Llama 3.2", size: "1B / 3B", type: "Text Gen", desc: "Highly efficient edge model." },
                         { name: "Qwen 2.5", size: "0.5B - 7B", type: "Text Gen", desc: "Strong reasoning capabilities." },
                         { name: "Phi-3.5", size: "3.8B", type: "Text Gen", desc: "Microsoft's high-perf compact model." },
-                        { name: "Gemma 2", size: "2B", type: "Text Gen", desc: "Google's lightweight open model." },
+                        { name: "Gemma 2", size: "2B", type: "Text Gen", desc: "Lightweight open model for text generation." },
                         { name: "SmolLM2", size: "135M - 1.7B", type: "Text Gen", desc: "Extremely fast execution." },
                         { name: "Mistral v0.3", size: "7B", type: "Text Gen", desc: "Industry standard for 7B class." }
                     ].map(model => (
