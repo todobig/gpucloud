@@ -12,7 +12,7 @@ export const BenefitCard: React.FC<CardProps> = ({ type, className = '' }) => {
   const Icon = isLatency ? Zap : Activity;
   const label = isLatency ? 'LATENCY' : 'UPTIME';
   const value = isLatency ? '<20ms' : '99.99%';
-  const sub = isLatency ? 'Global Avg' : 'SLA Guarantee';
+  const sub = isLatency ? 'Global Avg' : '98% AI Guarantee*';
 
   return (
     <div className={`relative flex flex-col justify-between p-5 w-40 h-40 bg-black border border-white sharp-shadow ${className}`}>

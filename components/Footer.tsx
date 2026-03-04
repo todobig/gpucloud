@@ -91,9 +91,16 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
 
       </div>
 
+      {/* Footnotes */}
+      <div className="max-w-[1400px] mx-auto px-6 mt-16 pt-6 border-t border-gray-900">
+        <p className="font-mono text-[10px] text-gray-600 max-w-2xl">
+            * 98% AI Guarantee: Metric derived by our autonomous swarm intelligence. While statistically significant, we cannot verify if the agents are hallucinating their own uptime reports. Proceed with stochastic confidence.
+        </p>
+      </div>
+
       {/* Bottom Bar */}
-      <div className="max-w-[1400px] mx-auto px-6 mt-20 pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center font-mono text-xs text-gray-600 gap-4">
-        <p>© 2026 GPUcloud Inc. All rights reserved.</p>
+      <div className="max-w-[1400px] mx-auto px-6 mt-8 pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center font-mono text-xs text-gray-600 gap-4">
+        <p>© 2026 GPUcloud xyz. All rights reserved.</p>
         <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <span className="text-gray-400">Systems Operational</span>
