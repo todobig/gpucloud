@@ -6,8 +6,9 @@ interface DashboardProps {
     onNavigate?: (view: ViewState) => void;
 }
 
-type TabState = 'overview' | 'clusters' | 'agents' | 'logs' | 'apikeys' | 'billing' | 'team';
+type TabState = 'overview' | 'clusters' | 'campaigns' | 'agents' | 'logs' | 'apikeys' | 'billing' | 'team';
 type DeploymentStep = 'model' | 'gpu' | 'key';
+type CampaignSetupStep = 'basics' | 'dialer' | 'review';
 
 const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const [activeTab, setActiveTab] = useState<TabState>('overview');
@@ -30,6 +31,17 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const openDeploymentFlow = () => {
     setActiveTab('clusters');
     setDeploymentFlowVersion((version) => version + 1);
+  };
+
+  const tabLabels: Record<TabState, string> = {
+    overview: 'Overview',
+    clusters: 'Clusters',
+    campaigns: 'Campaigns',
+    agents: 'Agents',
+    logs: 'Usage & Logs',
+    apikeys: 'API Keys',
+    billing: 'Billing',
+    team: 'Team',
   };
 
   const SidebarItem = ({ id, icon: Icon, label }: { id: TabState, icon: any, label: string }) => (
@@ -69,6 +81,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     <nav className="space-y-1">
                         <SidebarItem id="overview" icon={Activity} label="Overview" />
                         <SidebarItem id="clusters" icon={Box} label="Clusters" />
+                        <SidebarItem id="campaigns" icon={Workflow} label="Campaigns" />
                         <SidebarItem id="agents" icon={Bot} label="Agents" />
                         <SidebarItem id="logs" icon={Clock} label="Usage & Logs" />
                     </nav>
@@ -98,10 +111,28 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         <div className="flex-1 flex flex-col min-w-0">
             {/* Top Bar */}
             <div className="h-[80px] border-b border-gray-800 flex items-center justify-between px-8 bg-black sticky top-0 z-20">
-                <div className="flex items-center gap-4 text-gray-400 text-sm font-mono">
-                    <span className="opacity-50">CONSOLE</span>
-                    <span className="text-gray-700">/</span>
-                    <span className="text-white font-bold uppercase">{activeTab}</span>
+                <div className="flex items-center gap-4">
+                    <div className="hidden lg:flex items-center gap-4 text-gray-400 text-sm font-mono">
+                        <span className="opacity-50">CONSOLE</span>
+                        <span className="text-gray-700">/</span>
+                        <span className="text-white font-bold uppercase">{tabLabels[activeTab]}</span>
+                    </div>
+                    <div className="lg:hidden">
+                        <select
+                            value={activeTab}
+                            onChange={(e) => setActiveTab(e.target.value as TabState)}
+                            className="bg-dats-gray border border-gray-800 py-2 px-3 text-xs font-mono uppercase text-white focus:border-white outline-none"
+                        >
+                            <option value="overview">Overview</option>
+                            <option value="clusters">Clusters</option>
+                            <option value="campaigns">Campaigns</option>
+                            <option value="agents">Agents</option>
+                            <option value="logs">Usage & Logs</option>
+                            <option value="apikeys">API Keys</option>
+                            <option value="billing">Billing</option>
+                            <option value="team">Team</option>
+                        </select>
+                    </div>
                 </div>
                 <div className="flex items-center gap-4">
                     <div className="hidden md:block relative">
@@ -123,6 +154,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <div className="flex-1 p-8 overflow-y-auto bg-black">
                 {activeTab === 'overview' && <Overview reqs={reqs} latency={latency} onStartDeployment={openDeploymentFlow} />}
                 {activeTab === 'clusters' && <Clusters flowVersion={deploymentFlowVersion} />}
+                {activeTab === 'campaigns' && <Campaigns />}
                 {activeTab === 'agents' && <AgentsView />}
                 {activeTab === 'logs' && <Logs />}
                 {activeTab === 'apikeys' && <ApiKeys />}
@@ -504,6 +536,404 @@ const Clusters = ({ flowVersion }: { flowVersion: number }) => {
                     </tbody>
                 </table>
             </div>
+        </div>
+    );
+};
+
+const Campaigns = () => {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [campaigns, setCampaigns] = useState([
+        {
+            name: 'us-outbound-q4',
+            model: 'Qwen 3.5 Instruct',
+            callerIdList: 'US Sales Pool',
+            voicemailAction: 'Drop AI Voicemail',
+            maxConcurrentCalls: 20,
+            status: 'Running',
+            updated: '2m ago',
+        },
+        {
+            name: 'uk-renewals',
+            model: 'Llama 3.2 Instruct',
+            callerIdList: 'UK Renewal Lines',
+            voicemailAction: 'Retry in 2h',
+            maxConcurrentCalls: 12,
+            status: 'Scheduled',
+            updated: '18m ago',
+        },
+        {
+            name: 'weekend-followups',
+            model: 'Phi-4 Mini',
+            callerIdList: 'Fallback Caller IDs',
+            voicemailAction: 'Mark as Voicemail',
+            maxConcurrentCalls: 8,
+            status: 'Paused',
+            updated: '1d ago',
+        },
+    ]);
+    const [form, setForm] = useState({
+        name: '',
+        model: 'qwen-3.5-instruct',
+        callerIdList: 'us-sales-pool',
+        voicemailAction: 'drop-ai-voicemail',
+        maxConcurrentCalls: 10,
+        schedule: 'immediate',
+    });
+    const [campaignStep, setCampaignStep] = useState<CampaignSetupStep>('basics');
+
+    const modelOptions = [
+        { value: 'qwen-3.5-instruct', label: 'Qwen 3.5 Instruct' },
+        { value: 'llama-3.2-instruct', label: 'Llama 3.2 Instruct' },
+        { value: 'phi-4-mini', label: 'Phi-4 Mini' },
+    ];
+    const callerIdLists = [
+        { value: 'us-sales-pool', label: 'US Sales Pool' },
+        { value: 'uk-renewal-lines', label: 'UK Renewal Lines' },
+        { value: 'fallback-caller-ids', label: 'Fallback Caller IDs' },
+    ];
+    const voicemailActions = [
+        { value: 'drop-ai-voicemail', label: 'Drop AI Voicemail' },
+        { value: 'retry-2h', label: 'Retry in 2h' },
+        { value: 'mark-voicemail', label: 'Mark as Voicemail' },
+        { value: 'send-to-human', label: 'Transfer to Human Queue' },
+    ];
+    const scheduleOptions = [
+        { value: 'immediate', label: 'Start Immediately' },
+        { value: 'business-hours', label: 'Business Hours Only' },
+        { value: 'night-shift', label: 'Night Shift Window' },
+    ];
+    const stepOrder: CampaignSetupStep[] = ['basics', 'dialer', 'review'];
+    const activeStepIndex = stepOrder.indexOf(campaignStep);
+    const stepLabels: Record<CampaignSetupStep, string> = {
+        basics: 'Campaign Basics',
+        dialer: 'Dialer Rules',
+        review: 'Review + Launch',
+    };
+
+    const openModal = () => {
+        setForm({
+            name: '',
+            model: 'qwen-3.5-instruct',
+            callerIdList: 'us-sales-pool',
+            voicemailAction: 'drop-ai-voicemail',
+            maxConcurrentCalls: 10,
+            schedule: 'immediate',
+        });
+        setCampaignStep('basics');
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setCampaignStep('basics');
+        setIsModalOpen(false);
+    };
+
+    const goToNextStep = () => {
+        if (campaignStep === 'basics') setCampaignStep('dialer');
+        if (campaignStep === 'dialer') setCampaignStep('review');
+    };
+
+    const goToPreviousStep = () => {
+        if (campaignStep === 'review') setCampaignStep('dialer');
+        if (campaignStep === 'dialer') setCampaignStep('basics');
+    };
+
+    const handleCreateCampaign = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (campaignStep !== 'review') return;
+        const campaignName = form.name.trim();
+        if (!campaignName) return;
+
+        const modelLabel = modelOptions.find((opt) => opt.value === form.model)?.label ?? form.model;
+        const callerIdLabel = callerIdLists.find((opt) => opt.value === form.callerIdList)?.label ?? form.callerIdList;
+        const voicemailActionLabel = voicemailActions.find((opt) => opt.value === form.voicemailAction)?.label ?? form.voicemailAction;
+        const status = form.schedule === 'immediate' ? 'Running' : 'Scheduled';
+
+        setCampaigns((prev) => [
+            {
+                name: campaignName.toLowerCase().replace(/\s+/g, '-'),
+                model: modelLabel,
+                callerIdList: callerIdLabel,
+                voicemailAction: voicemailActionLabel,
+                maxConcurrentCalls: form.maxConcurrentCalls,
+                status,
+                updated: 'Just now',
+            },
+            ...prev,
+        ]);
+        closeModal();
+    };
+
+    return (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex justify-between items-end mb-8">
+                <div>
+                    <h1 className="font-display font-black text-4xl mb-2">CAMPAIGNS</h1>
+                    <p className="font-mono text-gray-400 text-sm">Manage outbound campaign routing and call behavior.</p>
+                </div>
+                <button
+                    onClick={openModal}
+                    className="bg-dats-blue text-white px-4 py-2 font-mono text-xs font-bold uppercase flex items-center gap-2 hover:bg-white hover:text-black transition-colors"
+                >
+                    <Plus size={14} /> New Campaign
+                </button>
+            </div>
+
+            <div className="border border-white bg-dats-light overflow-hidden">
+                <table className="w-full text-left font-mono text-sm">
+                    <thead className="bg-black border-b border-white text-gray-500 text-xs uppercase">
+                        <tr>
+                            <th className="p-4 font-normal">Campaign</th>
+                            <th className="p-4 font-normal">Model</th>
+                            <th className="p-4 font-normal">Caller ID List</th>
+                            <th className="p-4 font-normal">AI Voicemail Action</th>
+                            <th className="p-4 font-normal">Max Calls</th>
+                            <th className="p-4 font-normal">Status</th>
+                            <th className="p-4 font-normal">Updated</th>
+                            <th className="p-4 font-normal"></th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-800">
+                        {campaigns.map((campaign, i) => (
+                            <tr key={`${campaign.name}-${i}`} className="hover:bg-white/5 transition-colors">
+                                <td className="p-4 font-bold text-white">{campaign.name}</td>
+                                <td className="p-4 text-gray-400">{campaign.model}</td>
+                                <td className="p-4 text-gray-400">{campaign.callerIdList}</td>
+                                <td className="p-4 text-gray-400">{campaign.voicemailAction}</td>
+                                <td className="p-4 text-gray-300">{campaign.maxConcurrentCalls}</td>
+                                <td className="p-4">
+                                    <span
+                                        className={`flex items-center gap-2 text-xs uppercase font-bold ${
+                                            campaign.status === 'Running'
+                                                ? 'text-green-500'
+                                                : campaign.status === 'Scheduled'
+                                                ? 'text-yellow-500'
+                                                : 'text-gray-500'
+                                        }`}
+                                    >
+                                        <span
+                                            className={`w-1.5 h-1.5 rounded-full ${
+                                                campaign.status === 'Running'
+                                                    ? 'bg-green-500 animate-pulse'
+                                                    : campaign.status === 'Scheduled'
+                                                    ? 'bg-yellow-500'
+                                                    : 'bg-gray-500'
+                                            }`}
+                                        ></span>
+                                        {campaign.status}
+                                    </span>
+                                </td>
+                                <td className="p-4 text-gray-400">{campaign.updated}</td>
+                                <td className="p-4 text-right">
+                                    <button className="text-gray-500 hover:text-white mr-4">
+                                        {campaign.status === 'Running' ? <Pause size={14} /> : <Play size={14} />}
+                                    </button>
+                                    <button className="text-gray-500 hover:text-white">
+                                        <MoreHorizontal size={16} />
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            {isModalOpen && (
+                <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="w-full max-w-3xl border border-white bg-black sharp-shadow">
+                        <div className="flex items-center justify-between border-b border-gray-800 p-6">
+                            <div>
+                                <h3 className="font-display font-bold text-2xl text-white">CREATE NEW CAMPAIGN</h3>
+                                <p className="font-mono text-xs text-gray-500 mt-1">Configure model, caller IDs, and voicemail behavior.</p>
+                            </div>
+                            <button
+                                onClick={closeModal}
+                                className="text-xs font-mono uppercase border border-gray-700 px-3 py-1 text-gray-400 hover:text-white hover:border-white transition-colors"
+                            >
+                                Close
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleCreateCampaign} className="p-6 space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                {stepOrder.map((step, index) => {
+                                    const isDone = index < activeStepIndex;
+                                    const isActive = index === activeStepIndex;
+                                    return (
+                                        <div
+                                            key={step}
+                                            className={`border px-4 py-3 text-xs font-mono uppercase tracking-wide ${
+                                                isDone
+                                                    ? 'border-green-500 text-green-500 bg-green-500/10'
+                                                    : isActive
+                                                    ? 'border-dats-blue text-dats-blue bg-dats-light'
+                                                    : 'border-gray-800 text-gray-500 bg-dats-light'
+                                            }`}
+                                        >
+                                            {index + 1}. {stepLabels[step]}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {campaignStep === 'basics' && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <label className="block">
+                                        <span className="block text-[10px] font-mono uppercase text-gray-500 mb-2">Campaign Name</span>
+                                        <input
+                                            value={form.name}
+                                            onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+                                            placeholder="e.g. US Renewal Sprint"
+                                            className="w-full bg-dats-light border border-gray-700 p-3 text-sm text-white outline-none focus:border-dats-blue"
+                                        />
+                                    </label>
+                                    <label className="block">
+                                        <span className="block text-[10px] font-mono uppercase text-gray-500 mb-2">Model</span>
+                                        <select
+                                            value={form.model}
+                                            onChange={(e) => setForm((prev) => ({ ...prev, model: e.target.value }))}
+                                            className="w-full bg-dats-light border border-gray-700 p-3 text-sm text-white outline-none focus:border-dats-blue"
+                                        >
+                                            {modelOptions.map((opt) => (
+                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                    <label className="block md:col-span-2">
+                                        <span className="block text-[10px] font-mono uppercase text-gray-500 mb-2">Caller ID List</span>
+                                        <select
+                                            value={form.callerIdList}
+                                            onChange={(e) => setForm((prev) => ({ ...prev, callerIdList: e.target.value }))}
+                                            className="w-full bg-dats-light border border-gray-700 p-3 text-sm text-white outline-none focus:border-dats-blue"
+                                        >
+                                            {callerIdLists.map((opt) => (
+                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                </div>
+                            )}
+
+                            {campaignStep === 'dialer' && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <label className="block">
+                                        <span className="block text-[10px] font-mono uppercase text-gray-500 mb-2">AI Voicemail Detection Action</span>
+                                        <select
+                                            value={form.voicemailAction}
+                                            onChange={(e) => setForm((prev) => ({ ...prev, voicemailAction: e.target.value }))}
+                                            className="w-full bg-dats-light border border-gray-700 p-3 text-sm text-white outline-none focus:border-dats-blue"
+                                        >
+                                            {voicemailActions.map((opt) => (
+                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                    <label className="block">
+                                        <span className="block text-[10px] font-mono uppercase text-gray-500 mb-2">Max Concurrent Calls</span>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={100}
+                                            value={form.maxConcurrentCalls}
+                                            onChange={(e) => setForm((prev) => ({ ...prev, maxConcurrentCalls: Number(e.target.value) || 1 }))}
+                                            className="w-full bg-dats-light border border-gray-700 p-3 text-sm text-white outline-none focus:border-dats-blue"
+                                        />
+                                    </label>
+                                    <label className="block md:col-span-2">
+                                        <span className="block text-[10px] font-mono uppercase text-gray-500 mb-2">Schedule</span>
+                                        <select
+                                            value={form.schedule}
+                                            onChange={(e) => setForm((prev) => ({ ...prev, schedule: e.target.value }))}
+                                            className="w-full bg-dats-light border border-gray-700 p-3 text-sm text-white outline-none focus:border-dats-blue"
+                                        >
+                                            {scheduleOptions.map((opt) => (
+                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                </div>
+                            )}
+
+                            {campaignStep === 'review' && (
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="border border-gray-800 bg-dats-light p-4">
+                                            <div className="text-[10px] font-mono uppercase text-gray-500 mb-2">Campaign</div>
+                                            <div className="text-sm font-bold text-white">{form.name || 'Unnamed Campaign'}</div>
+                                        </div>
+                                        <div className="border border-gray-800 bg-dats-light p-4">
+                                            <div className="text-[10px] font-mono uppercase text-gray-500 mb-2">Model</div>
+                                            <div className="text-sm font-bold text-white">
+                                                {modelOptions.find((opt) => opt.value === form.model)?.label}
+                                            </div>
+                                        </div>
+                                        <div className="border border-gray-800 bg-dats-light p-4">
+                                            <div className="text-[10px] font-mono uppercase text-gray-500 mb-2">Caller ID List</div>
+                                            <div className="text-sm font-bold text-white">
+                                                {callerIdLists.find((opt) => opt.value === form.callerIdList)?.label}
+                                            </div>
+                                        </div>
+                                        <div className="border border-gray-800 bg-dats-light p-4">
+                                            <div className="text-[10px] font-mono uppercase text-gray-500 mb-2">AI Voicemail Detection Action</div>
+                                            <div className="text-sm font-bold text-white">
+                                                {voicemailActions.find((opt) => opt.value === form.voicemailAction)?.label}
+                                            </div>
+                                        </div>
+                                        <div className="border border-gray-800 bg-dats-light p-4">
+                                            <div className="text-[10px] font-mono uppercase text-gray-500 mb-2">Max Concurrent Calls</div>
+                                            <div className="text-sm font-bold text-white">{form.maxConcurrentCalls}</div>
+                                        </div>
+                                        <div className="border border-gray-800 bg-dats-light p-4">
+                                            <div className="text-[10px] font-mono uppercase text-gray-500 mb-2">Schedule</div>
+                                            <div className="text-sm font-bold text-white">
+                                                {scheduleOptions.find((opt) => opt.value === form.schedule)?.label}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex items-center justify-end gap-3 pt-2">
+                                {campaignStep === 'basics' ? (
+                                    <button
+                                        type="button"
+                                        onClick={closeModal}
+                                        className="px-4 py-2 bg-black border border-gray-700 text-gray-300 font-mono text-xs font-bold uppercase hover:border-white hover:text-white transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={goToPreviousStep}
+                                        className="px-4 py-2 bg-black border border-gray-700 text-gray-300 font-mono text-xs font-bold uppercase hover:border-white hover:text-white transition-colors"
+                                    >
+                                        Back
+                                    </button>
+                                )}
+
+                                {campaignStep !== 'review' ? (
+                                    <button
+                                        type="button"
+                                        onClick={goToNextStep}
+                                        disabled={campaignStep === 'basics' && !form.name.trim()}
+                                        className="px-4 py-2 bg-dats-blue text-white font-mono text-xs font-bold uppercase hover:bg-white hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Continue
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="submit"
+                                        className="px-4 py-2 bg-dats-blue text-white font-mono text-xs font-bold uppercase hover:bg-white hover:text-black transition-colors"
+                                    >
+                                        Create Campaign
+                                    </button>
+                                )}
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
