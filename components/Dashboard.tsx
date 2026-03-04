@@ -7,11 +7,13 @@ interface DashboardProps {
 }
 
 type TabState = 'overview' | 'clusters' | 'agents' | 'logs' | 'apikeys' | 'billing' | 'team';
+type DeploymentStep = 'model' | 'gpu' | 'key';
 
 const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const [activeTab, setActiveTab] = useState<TabState>('overview');
   const [reqs, setReqs] = useState(8432);
   const [latency, setLatency] = useState(24);
+  const [deploymentFlowVersion, setDeploymentFlowVersion] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -23,6 +25,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
   const handleSignOut = () => {
       if (onNavigate) onNavigate('home');
+  };
+
+  const openDeploymentFlow = () => {
+    setActiveTab('clusters');
+    setDeploymentFlowVersion((version) => version + 1);
   };
 
   const SidebarItem = ({ id, icon: Icon, label }: { id: TabState, icon: any, label: string }) => (
@@ -114,8 +121,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             </div>
 
             <div className="flex-1 p-8 overflow-y-auto bg-black">
-                {activeTab === 'overview' && <Overview reqs={reqs} latency={latency} />}
-                {activeTab === 'clusters' && <Clusters />}
+                {activeTab === 'overview' && <Overview reqs={reqs} latency={latency} onStartDeployment={openDeploymentFlow} />}
+                {activeTab === 'clusters' && <Clusters flowVersion={deploymentFlowVersion} />}
                 {activeTab === 'agents' && <AgentsView />}
                 {activeTab === 'logs' && <Logs />}
                 {activeTab === 'apikeys' && <ApiKeys />}
@@ -129,14 +136,25 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
 /* --- Sub-Components for Views --- */
 
-const Overview = ({ reqs, latency }: { reqs: number, latency: number }) => (
+const Overview = ({
+    reqs,
+    latency,
+    onStartDeployment,
+}: {
+    reqs: number;
+    latency: number;
+    onStartDeployment: () => void;
+}) => (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex justify-between items-end mb-8">
             <div>
                 <h1 className="font-display font-black text-4xl mb-2">OVERVIEW</h1>
                 <p className="font-mono text-gray-400 text-sm">Real-time inference metrics for the last hour.</p>
             </div>
-            <button className="bg-dats-blue text-white px-4 py-2 font-mono text-xs font-bold uppercase flex items-center gap-2 hover:bg-white hover:text-black transition-colors border border-transparent hover:border-black">
+            <button
+                onClick={onStartDeployment}
+                className="bg-dats-blue text-white px-4 py-2 font-mono text-xs font-bold uppercase flex items-center gap-2 hover:bg-white hover:text-black transition-colors border border-transparent hover:border-black"
+            >
                 <Plus size={14} /> New Deployment
             </button>
         </div>
@@ -239,64 +257,256 @@ const Overview = ({ reqs, latency }: { reqs: number, latency: number }) => (
     </div>
 );
 
-const Clusters = () => (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="flex justify-between items-end mb-8">
-            <div>
-                <h1 className="font-display font-black text-4xl mb-2">CLUSTERS</h1>
-                <p className="font-mono text-gray-400 text-sm">Manage your deployed inference endpoints.</p>
+const Clusters = ({ flowVersion }: { flowVersion: number }) => {
+    const [isWizardOpen, setIsWizardOpen] = useState(false);
+    const [step, setStep] = useState<DeploymentStep>('model');
+    const [selectedModel, setSelectedModel] = useState('qwen-3.5-9b-instruct');
+    const [selectedGpu, setSelectedGpu] = useState('rtx-4090');
+    const [apiKey, setApiKey] = useState('');
+
+    const modelOptions = [
+        { id: 'qwen-3.5-9b-instruct', label: 'Qwen 3.5 Instruct', size: '9B', note: 'Best compact reasoning model' },
+        { id: 'llama-3.2-3b-instruct', label: 'Llama 3.2 Instruct', size: '3B', note: 'Ultra-low latency edge deployment' },
+        { id: 'phi-4-mini', label: 'Phi-4 Mini', size: '3.8B', note: 'Strong coding + agent workflows' },
+    ];
+
+    const gpuOptions = [
+        { id: 'rtx-4090', label: 'RTX 4090', vram: '24GB', note: 'Best value for production' },
+        { id: 'rtx-5090', label: 'RTX 5090', vram: '32GB', note: 'Highest throughput tier' },
+        { id: 'rtx-3090', label: 'RTX 3090', vram: '24GB', note: 'Budget deployment profile' },
+    ];
+
+    const stepOrder: DeploymentStep[] = ['model', 'gpu', 'key'];
+    const activeStepIndex = stepOrder.indexOf(step);
+
+    useEffect(() => {
+        if (flowVersion === 0) return;
+        setIsWizardOpen(true);
+        setStep('model');
+        setApiKey('');
+    }, [flowVersion]);
+
+    const startWizard = () => {
+        setIsWizardOpen(true);
+        setStep('model');
+        setApiKey('');
+    };
+
+    const continueToGpu = () => {
+        setStep('gpu');
+    };
+
+    const createDeployment = () => {
+        const keySuffix = Math.random().toString(36).slice(2, 12);
+        setApiKey(`sk-live_${keySuffix}`);
+        setStep('key');
+    };
+
+    return (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex justify-between items-end mb-8">
+                <div>
+                    <h1 className="font-display font-black text-4xl mb-2">CLUSTERS</h1>
+                    <p className="font-mono text-gray-400 text-sm">Manage your deployed inference endpoints.</p>
+                </div>
+                <button
+                    onClick={startWizard}
+                    className="bg-dats-blue text-white px-4 py-2 font-mono text-xs font-bold uppercase flex items-center gap-2 hover:bg-white hover:text-black transition-colors"
+                >
+                    <Plus size={14} /> New Deployment
+                </button>
             </div>
-            <button className="bg-dats-blue text-white px-4 py-2 font-mono text-xs font-bold uppercase flex items-center gap-2 hover:bg-white hover:text-black transition-colors">
-                <Plus size={14} /> Deploy Cluster
-            </button>
-        </div>
-        
-        <div className="border border-white bg-dats-light overflow-hidden">
-            <table className="w-full text-left font-mono text-sm">
-                <thead className="bg-black border-b border-white text-gray-500 text-xs uppercase">
-                    <tr>
-                        <th className="p-4 font-normal">Name</th>
-                        <th className="p-4 font-normal">Region</th>
-                        <th className="p-4 font-normal">Hardware</th>
-                        <th className="p-4 font-normal">Status</th>
-                        <th className="p-4 font-normal">Replicas</th>
-                        <th className="p-4 font-normal"></th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-800">
-                    {[
-                        { name: "llama-3.2-prod", region: "us-east-1", hw: "RTX 5090", status: "active", rep: "2/2" },
-                        { name: "flux-gen-v1", region: "eu-west-1", hw: "RTX 4090", status: "scaling", rep: "1/5" },
-                        { name: "whisper-audio", region: "ap-northeast", hw: "RTX 3090", status: "active", rep: "1/1" },
-                        { name: "mistral-7b-dev", region: "us-west-2", hw: "RTX 4090", status: "stopped", rep: "0/1" }
-                    ].map((row, i) => (
-                        <tr key={i} className="hover:bg-white/5 transition-colors">
-                            <td className="p-4 font-bold text-white">{row.name}</td>
-                            <td className="p-4 text-gray-400">{row.region}</td>
-                            <td className="p-4 text-gray-400">{row.hw}</td>
-                            <td className="p-4">
-                                <span className={`flex items-center gap-2 text-xs uppercase font-bold
-                                    ${row.status === 'active' ? 'text-green-500' : 
-                                      row.status === 'scaling' ? 'text-yellow-500' : 'text-gray-500'}`
-                                }>
-                                    <span className={`w-1.5 h-1.5 rounded-full ${
-                                        row.status === 'active' ? 'bg-green-500' : 
-                                        row.status === 'scaling' ? 'bg-yellow-500 animate-pulse' : 'bg-gray-500'}`
-                                    }></span>
-                                    {row.status}
-                                </span>
-                            </td>
-                            <td className="p-4 text-gray-400">{row.rep}</td>
-                            <td className="p-4 text-right">
-                                <button className="text-gray-500 hover:text-white"><MoreHorizontal size={16} /></button>
-                            </td>
+
+            {isWizardOpen && (
+                <div className="border border-white bg-dats-light p-6 mb-8">
+                    <div className="flex items-center justify-between gap-4 mb-6">
+                        <h2 className="font-display font-bold text-2xl">DEPLOYMENT FLOW</h2>
+                        <button
+                            onClick={() => setIsWizardOpen(false)}
+                            className="text-xs font-mono uppercase border border-gray-700 px-3 py-1 text-gray-400 hover:text-white hover:border-white transition-colors"
+                        >
+                            Close
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+                        {[
+                            { id: 'model' as DeploymentStep, label: 'Model Selection' },
+                            { id: 'gpu' as DeploymentStep, label: 'GPU Selection' },
+                            { id: 'key' as DeploymentStep, label: 'API Key' },
+                        ].map((item, index) => {
+                            const isDone = index < activeStepIndex;
+                            const isActive = index === activeStepIndex;
+                            return (
+                                <div
+                                    key={item.id}
+                                    className={`border px-4 py-3 text-xs font-mono uppercase tracking-wide ${
+                                        isDone
+                                            ? 'border-green-500 text-green-500 bg-green-500/10'
+                                            : isActive
+                                            ? 'border-dats-blue text-dats-blue bg-black'
+                                            : 'border-gray-800 text-gray-500 bg-black'
+                                    }`}
+                                >
+                                    {index + 1}. {item.label}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {step === 'model' && (
+                        <div className="space-y-4">
+                            <p className="font-mono text-xs text-gray-400 uppercase">Choose a deployment model</p>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {modelOptions.map((model) => (
+                                    <button
+                                        key={model.id}
+                                        onClick={() => setSelectedModel(model.id)}
+                                        className={`text-left border p-4 transition-colors ${
+                                            selectedModel === model.id
+                                                ? 'border-dats-blue bg-black'
+                                                : 'border-gray-800 bg-black hover:border-white'
+                                        }`}
+                                    >
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="font-bold text-sm text-white">{model.label}</div>
+                                            <span className="text-[10px] border border-gray-700 px-2 py-0.5 text-gray-400">{model.size}</span>
+                                        </div>
+                                        <p className="text-xs font-mono text-gray-500">{model.note}</p>
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="flex justify-end">
+                                <button
+                                    onClick={continueToGpu}
+                                    className="bg-dats-blue text-white px-4 py-2 font-mono text-xs font-bold uppercase hover:bg-white hover:text-black transition-colors"
+                                >
+                                    Continue to GPU Selection
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {step === 'gpu' && (
+                        <div className="space-y-4">
+                            <p className="font-mono text-xs text-gray-400 uppercase">Select GPU hardware</p>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {gpuOptions.map((gpu) => (
+                                    <button
+                                        key={gpu.id}
+                                        onClick={() => setSelectedGpu(gpu.id)}
+                                        className={`text-left border p-4 transition-colors ${
+                                            selectedGpu === gpu.id
+                                                ? 'border-dats-blue bg-black'
+                                                : 'border-gray-800 bg-black hover:border-white'
+                                        }`}
+                                    >
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="font-bold text-sm text-white">{gpu.label}</div>
+                                            <span className="text-[10px] border border-gray-700 px-2 py-0.5 text-gray-400">{gpu.vram}</span>
+                                        </div>
+                                        <p className="text-xs font-mono text-gray-500">{gpu.note}</p>
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="flex justify-between">
+                                <button
+                                    onClick={() => setStep('model')}
+                                    className="bg-black border border-gray-700 text-white px-4 py-2 font-mono text-xs font-bold uppercase hover:border-white transition-colors"
+                                >
+                                    Back
+                                </button>
+                                <button
+                                    onClick={createDeployment}
+                                    className="bg-dats-blue text-white px-4 py-2 font-mono text-xs font-bold uppercase hover:bg-white hover:text-black transition-colors"
+                                >
+                                    Deploy + Generate API Key
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {step === 'key' && (
+                        <div className="space-y-4">
+                            <p className="font-mono text-xs text-gray-400 uppercase">Deployment ready</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="border border-gray-800 bg-black p-4">
+                                    <div className="text-[10px] font-mono uppercase text-gray-500 mb-2">Model</div>
+                                    <div className="text-sm font-bold text-white">
+                                        {modelOptions.find((model) => model.id === selectedModel)?.label}
+                                    </div>
+                                </div>
+                                <div className="border border-gray-800 bg-black p-4">
+                                    <div className="text-[10px] font-mono uppercase text-gray-500 mb-2">GPU</div>
+                                    <div className="text-sm font-bold text-white">
+                                        {gpuOptions.find((gpu) => gpu.id === selectedGpu)?.label}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="border border-dats-blue bg-black p-4">
+                                <div className="text-[10px] font-mono uppercase text-gray-500 mb-2">API Key</div>
+                                <div className="font-mono text-sm text-dats-blue break-all">{apiKey}</div>
+                            </div>
+                            <div className="flex justify-end">
+                                <button
+                                    onClick={startWizard}
+                                    className="bg-white text-black px-4 py-2 font-mono text-xs font-bold uppercase hover:bg-dats-blue hover:text-white transition-colors"
+                                >
+                                    New Deployment
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+            
+            <div className="border border-white bg-dats-light overflow-hidden">
+                <table className="w-full text-left font-mono text-sm">
+                    <thead className="bg-black border-b border-white text-gray-500 text-xs uppercase">
+                        <tr>
+                            <th className="p-4 font-normal">Name</th>
+                            <th className="p-4 font-normal">Region</th>
+                            <th className="p-4 font-normal">Hardware</th>
+                            <th className="p-4 font-normal">Status</th>
+                            <th className="p-4 font-normal">Replicas</th>
+                            <th className="p-4 font-normal"></th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody className="divide-y divide-gray-800">
+                        {[
+                            { name: "llama-3.2-prod", region: "us-east-1", hw: "RTX 5090", status: "active", rep: "2/2" },
+                            { name: "flux-gen-v1", region: "eu-west-1", hw: "RTX 4090", status: "scaling", rep: "1/5" },
+                            { name: "whisper-audio", region: "ap-northeast", hw: "RTX 3090", status: "active", rep: "1/1" },
+                            { name: "mistral-7b-dev", region: "us-west-2", hw: "RTX 4090", status: "stopped", rep: "0/1" }
+                        ].map((row, i) => (
+                            <tr key={i} className="hover:bg-white/5 transition-colors">
+                                <td className="p-4 font-bold text-white">{row.name}</td>
+                                <td className="p-4 text-gray-400">{row.region}</td>
+                                <td className="p-4 text-gray-400">{row.hw}</td>
+                                <td className="p-4">
+                                    <span className={`flex items-center gap-2 text-xs uppercase font-bold
+                                        ${row.status === 'active' ? 'text-green-500' : 
+                                          row.status === 'scaling' ? 'text-yellow-500' : 'text-gray-500'}`
+                                    }>
+                                        <span className={`w-1.5 h-1.5 rounded-full ${
+                                            row.status === 'active' ? 'bg-green-500' : 
+                                            row.status === 'scaling' ? 'bg-yellow-500 animate-pulse' : 'bg-gray-500'}`
+                                        }></span>
+                                        {row.status}
+                                    </span>
+                                </td>
+                                <td className="p-4 text-gray-400">{row.rep}</td>
+                                <td className="p-4 text-right">
+                                    <button className="text-gray-500 hover:text-white"><MoreHorizontal size={16} /></button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 const AgentsView = () => (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
