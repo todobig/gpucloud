@@ -21,12 +21,12 @@ const Models: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {[
-                        { name: "Llama 3.1 Instruct", size: "8B", type: "Text Gen", desc: "Current compact general-purpose baseline." },
-                        { name: "Qwen 2.5 Instruct", size: "0.5B - 7B", type: "Text Gen", desc: "Strong multilingual reasoning in small sizes." },
-                        { name: "Phi-4 Mini", size: "3.8B", type: "Text Gen", desc: "High quality instruction following at low latency." },
+                        { name: "Qwen 3.5 Instruct", size: "0.8B / 2B / 4B / 9B", type: "Text Gen", desc: "Latest compact Qwen family for multilingual reasoning." },
+                        { name: "Llama 3.2 Instruct", size: "1B / 3B", type: "Text Gen", desc: "Fast edge-ready instruction models for local serving." },
+                        { name: "Phi-4 Mini", size: "3.8B", type: "Text Gen", desc: "Strong compact model for coding and agent workflows." },
                         { name: "Gemma 3", size: "1B / 4B / 8B", type: "Text Gen", desc: "Efficient open family tuned for modern edge workloads." },
-                        { name: "SmolLM3", size: "3B", type: "Text Gen", desc: "Very fast small model for agent-style tasks." },
-                        { name: "Mistral 7B Instruct", size: "7B", type: "Text Gen", desc: "Reliable 7B-class performance for production use." }
+                        { name: "SmolLM3", size: "3B", type: "Text Gen", desc: "Tiny footprint model optimized for low-latency tasks." },
+                        { name: "Mistral 7B Instruct", size: "7B", type: "Text Gen", desc: "Reliable 7B-class performance on consumer GPUs." }
                     ].map(model => (
                         <div key={model.name} className="bg-black border border-gray-800 p-6 hover:border-dats-blue transition-colors">
                             <div className="flex justify-between items-start mb-2">
@@ -44,15 +44,16 @@ const Models: React.FC = () => {
             <div className="border border-white p-8 bg-dats-light">
                 <div className="flex items-center gap-4 mb-8">
                     <AudioWaveform size={32} className="text-dats-blue" />
-                    <h2 className="font-display font-bold text-3xl">AUDIO & SPEECH</h2>
+                    <h2 className="font-display font-bold text-3xl">OPEN-SOURCE ASR + TTS</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {[
-                        { name: "Kokoro v0.19", size: "82M", type: "TTS", desc: "High quality real-time synthesis." },
-                        { name: "Supertonic-v1", size: "Unknown", type: "Audio Gen", desc: "Music and sfx generation." },
-                        { name: "Whisper v3", size: "Large", type: "ASR", desc: "State of the art transcription." },
-                        { name: "F5-TTS", size: "Flow", type: "Voice Clone", desc: "Instant voice cloning." },
-                        { name: "Reverb", size: "Distill", type: "Denoise", desc: "Audio cleanup and enhancement." }
+                        { name: "Qwen3-ASR", size: "0.6B / 1.7B", type: "ASR", desc: "Latest multilingual ASR models optimized for local GPUs." },
+                        { name: "Parakeet-TDT v3", size: "0.6B", type: "ASR", desc: "High-throughput transcription with low VRAM requirements." },
+                        { name: "Whisper Large-v3 Turbo", size: "809M", type: "ASR", desc: "Accurate open-source transcription with fast inference." },
+                        { name: "Qwen3-TTS", size: "0.6B / 1.7B", type: "TTS", desc: "Modern expressive TTS stack for real-time generation." },
+                        { name: "Kokoro", size: "82M", type: "TTS", desc: "Ultra-lightweight real-time synthesis for edge deployment." },
+                        { name: "F5-TTS", size: "~1B", type: "TTS", desc: "Natural speech generation and voice adaptation on consumer GPUs." }
                     ].map(model => (
                         <div key={model.name} className="bg-black border border-gray-800 p-6 hover:border-dats-blue transition-colors">
                             <div className="flex justify-between items-start mb-2">
