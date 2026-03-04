@@ -48,8 +48,42 @@ export type ViewState =
   | 'console'
   | 'dashboard';
 
+const VIEW_STORAGE_KEY = 'gpucloud-current-view';
+const viewStateValues = new Set<string>([
+  'home',
+  'company',
+  'prices',
+  'models',
+  'inference',
+  'dedicated',
+  'agents',
+  'docs',
+  'apiref',
+  'community',
+  'blog',
+  'status',
+  'about',
+  'careers',
+  'legal',
+  'privacy',
+  'contact',
+  'console',
+  'dashboard',
+]);
+
+const isViewState = (value: string | null): value is ViewState =>
+  value !== null && viewStateValues.has(value);
+
 const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<ViewState>('home');
+  const [currentView, setCurrentView] = useState<ViewState>(() => {
+    if (typeof window === 'undefined') return 'home';
+    const savedView = window.localStorage.getItem(VIEW_STORAGE_KEY);
+    return isViewState(savedView) ? savedView : 'home';
+  });
+
+  useEffect(() => {
+    window.localStorage.setItem(VIEW_STORAGE_KEY, currentView);
+  }, [currentView]);
 
   // Scroll to top on view change
   useEffect(() => {

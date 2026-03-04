@@ -21,12 +21,12 @@ const Models: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {[
-                        { name: "Llama 3.2", size: "1B / 3B", type: "Text Gen", desc: "Highly efficient edge model." },
-                        { name: "Qwen 2.5", size: "0.5B - 7B", type: "Text Gen", desc: "Strong reasoning capabilities." },
-                        { name: "Phi-3.5", size: "3.8B", type: "Text Gen", desc: "Microsoft's high-perf compact model." },
-                        { name: "Gemma 2", size: "2B", type: "Text Gen", desc: "Lightweight open model for text generation." },
-                        { name: "SmolLM2", size: "135M - 1.7B", type: "Text Gen", desc: "Extremely fast execution." },
-                        { name: "Mistral v0.3", size: "7B", type: "Text Gen", desc: "Industry standard for 7B class." }
+                        { name: "Llama 3.1 Instruct", size: "8B", type: "Text Gen", desc: "Current compact general-purpose baseline." },
+                        { name: "Qwen 2.5 Instruct", size: "0.5B - 7B", type: "Text Gen", desc: "Strong multilingual reasoning in small sizes." },
+                        { name: "Phi-4 Mini", size: "3.8B", type: "Text Gen", desc: "High quality instruction following at low latency." },
+                        { name: "Gemma 3", size: "1B / 4B / 8B", type: "Text Gen", desc: "Efficient open family tuned for modern edge workloads." },
+                        { name: "SmolLM3", size: "3B", type: "Text Gen", desc: "Very fast small model for agent-style tasks." },
+                        { name: "Mistral 7B Instruct", size: "7B", type: "Text Gen", desc: "Reliable 7B-class performance for production use." }
                     ].map(model => (
                         <div key={model.name} className="bg-black border border-gray-800 p-6 hover:border-dats-blue transition-colors">
                             <div className="flex justify-between items-start mb-2">
